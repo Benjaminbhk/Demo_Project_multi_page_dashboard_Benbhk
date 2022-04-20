@@ -1,0 +1,147 @@
+import streamlit as st
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+import numpy as np
+from matplotlib.ticker import PercentFormatter
+
+@st.cache
+def get_histo(df,col,bins,range):
+    return plt.hist(df[col],bins=bins,range=range)
+def app():
+    data_df = pd.read_pickle('Demo_Project_multi_page_dashboard_Benbhk/data/segmentation_all_df.pkl')
+    data_df_cust = data_df.drop_duplicates(subset=['customer_ID'], keep='last')
+    table_final_price = pd.pivot_table(data_df, values='final_price', index=['customer_ID'], aggfunc=np.sum)
+    spend_per_purchase = pd.read_pickle('Demo_Project_multi_page_dashboard_Benbhk/data/spend_per_purchase.pkl')
+    nb_of_itm_per_purchase = pd.read_pickle('Demo_Project_multi_page_dashboard_Benbhk/data/nb_of_itm.pkl')
+    sns.set_style("white")
+    st.write("")
+    st.markdown("""
+         ### Customer Information
+    """)
+    st.write("")
+    col1, col2, col3, col4, col5, col6 = st.columns((1,1,1,1,1,1))
+    col1.image("https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR4jqDkl_5KVJ6cDu1D1ETfjDYFAkyJFgU-uA&usqp=CAU", width=50)
+    col2.image("https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRuoQFSXIwwl2QDsopgs9uZG-K9trW4E8D4mA&usqp=CAU", width=25)
+    col3.image("https://svgsilh.com/svg_v2/2024650.svg", width=30)
+    col4.image("https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSDtJiOILri07AikNsRYouOM8wzSpGwyeAP1w&usqp=CAU", width=50)
+    col5.image("https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTZJuWdgcnjUVVps2ptDXTWXZlox9doqvd4fphu4RN9b44hEba_6q8IJPyQ5qXabLagIk4&usqp=CAU",width=50)
+    col6.image("https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQYI9Wis30IUMQAuF8MS9F0WqAAZAH6KbIX5TbOFWy_97Tbdo5l46lCcBNWIftNFiulduY&usqp=CAU", width=85)
+    col1, col2, col3, col4, col5, col6 = st.columns((1,1,1,1,1,1))
+    col1.metric("# of Customers", len(data_df['customer_ID'].unique().tolist()))
+    col2.metric("Men",f"{round(data_df_cust[data_df_cust['gender']=='male']['gender'].count()*100/data_df_cust['gender'].count(),0)}%")
+    col3.metric("Women",f"{round(data_df_cust[data_df_cust['gender']=='female']['gender'].count()*100/data_df_cust['gender'].count(),0)}%")
+    col4.metric("Average Age", round(data_df_cust['age'].mean(),1) )
+    col5.metric("Premium customers", f"{round(data_df_cust[data_df_cust['premium_status']=='y']['premium_status'].count()/data_df_cust['premium_status'].count()*100,1)}%")
+    col6.metric("Online Customers", f"{round(data_df_cust[data_df_cust['on_off']=='online']['on_off'].count()/data_df_cust['on_off'].count()*100,1)}%")
+    st.write("")
+    st.write("")
+    st.markdown("""
+        ### Customer Behavior
+    """)
+    col1, col2, col3, col4, col5= st.columns((1,1,1,1,1))
+    col1.metric("Average # of Purchases",round(data_df.drop_duplicates(subset=['date','customer_ID'], keep='last').groupby('customer_ID')[['date']].agg('count').reset_index()['date'].mean(),1))
+    col2.metric("Average Item Spend", f"{round(data_df['final_price'].mean(),1)} HKD")
+    col3.metric("Average Basket Size", round(nb_of_itm_per_purchase['money_spend'].mean(),1))
+    col4.metric("Average Basket Spend", f"{round(spend_per_purchase['money_spend'].mean(),1)} HKD")
+    col5.metric("Median Customer Spend", f"{table_final_price['final_price'].quantile(.5)} HKD")
+    st.write("")
+    st.write("")
+    st.markdown("""
+         ### About Product
+    """)
+    spc, col1, spc, col2, spc = st.columns((.12,1,.21,1,.1))
+    with col1:
+        data = data_df.groupby('product_cat')[['final_price']].agg('count').reset_index()
+        fig, ax = plt.subplots(figsize=(7,3))
+        ax = sns.barplot(palette=("Blues_d"),data=data, y='product_cat', x='final_price', ax=ax, order=data['product_cat'])
+        ax.set(ylabel ="",xlabel='Purchases')
+        ax.set_title('# of Purchases per Product Category', fontweight="bold", fontsize=14)
+        sns.despine(left=True, bottom=True)
+        st.pyplot(fig)
+    with col2:
+        data = data_df.groupby('product_cat')[['final_price']].agg('sum').reset_index()
+        fig, ax = plt.subplots(figsize=(7,3))
+        ax = sns.barplot(palette=("Blues_d"),data=data, y='product_cat', x='final_price', ax=ax, order=data['product_cat'])
+        ax.set(ylabel ="",xlabel='Revenue')
+        ax.set_title('Revenue per Product Category', fontweight="bold", fontsize=14)
+        # ax.ticklabel_format(useOffset = False)
+        sns.despine(left=True, bottom=True)
+        st.pyplot(fig)
+    st.write("")
+    st.write("")
+    st.markdown("""
+         ### About Vendor
+    """)
+    col1, col2, col3, col4 = st.columns((1,.1,1,.1))
+    with col1:
+        data = data_df.groupby('vendor_cat')[['final_price']].agg('count').reset_index()
+        fig, ax = plt.subplots(figsize=(7,4))
+        ax = sns.barplot(palette=("Blues_d"),data=data, y='vendor_cat', x='final_price', ax=ax, order=data['vendor_cat'])
+        ax.set(ylabel ="",xlabel='Purchases')
+        ax.set_title('# of Purchases per Vendor Category', fontweight="bold", fontsize=14)
+        sns.despine(left=True, bottom=True)
+        st.pyplot(fig)
+    with col3:
+        data = data_df.groupby('vendor_cat')[['final_price']].agg('sum').reset_index()
+        fig, ax = plt.subplots(figsize=(7,4))
+        ax = sns.barplot(palette=("Blues_d"),data=data, y='vendor_cat', x='final_price', ax=ax, order=data['vendor_cat'])
+        ax.set(ylabel ="",xlabel='Revenue')
+        ax.set_title('Revenue per Vendor Category', fontweight="bold", fontsize=14)
+        sns.despine(left=True, bottom=True)
+        st.pyplot(fig)
+    st.write("")
+    st.write("")
+    st.markdown("""
+         ### RFM (Recency, Frequency, Monetary Value) Analysis
+    """)
+    col1, spc, col2, spc, col3 = st.columns((1,.1,1,.1,1))
+    with col1:
+        now = pd.to_datetime("now")
+        data_df['date']= pd.to_datetime(data_df['date'])
+        grouped_recent_date_df = data_df.groupby('customer_ID')['date'].agg('max').reset_index()
+        grouped_recent_date_df['invoice_months_before_now']= (now - grouped_recent_date_df['date'])/np.timedelta64(1,'M')
+        grouped_recent_date_df['bin']= pd.cut(grouped_recent_date_df['invoice_months_before_now'],[0,2,3,5,10,15,20,10000000], labels=['0-2','2-3','3-5', '5-10', '10-15', '15-20', '>20'])
+        grouped_recency_chart_df = grouped_recent_date_df.groupby('bin', as_index=False).count()
+        grouped_recency_chart_df['percent']=(grouped_recency_chart_df['customer_ID'] / grouped_recency_chart_df['customer_ID'].sum())
+        fig, ax = plt.subplots(figsize=(6,4))
+        ax = sns.barplot(palette=("Blues_d"),x=grouped_recency_chart_df["bin"], y=grouped_recency_chart_df["percent"], ax=ax)
+        ax.set_xlabel("Months")
+        ax.set_ylabel("Customers")
+        ax.set_title('Recency of Last Order', fontweight="bold", fontsize=16)
+        plt.gca().yaxis.set_major_formatter(PercentFormatter(1))
+        sns.despine(left=True, bottom=True)
+        st.pyplot(fig)
+    with col2:
+        data_df['most_recent_date'] = data_df.groupby(['customer_ID'])['date'].transform('max')
+        grouped_df = data_df.sort_values('most_recent_date').groupby('customer_ID').tail(1)
+        data_df['diff_months_prior_last_invoice'] = (data_df['most_recent_date'] - data_df['date'])/np.timedelta64(1,'M')
+        L12M_df = data_df.loc[data_df['diff_months_prior_last_invoice']<=12]
+        L12M_df['count_12M_prior_last_invoice'] = L12M_df.groupby(['customer_ID'])['diff_months_prior_last_invoice'].transform('count')
+        L12M_freq_grouped_df = L12M_df.sort_values('most_recent_date').groupby('customer_ID').tail(1)
+        L12M_freq_grouped_df['bin']= pd.cut(L12M_freq_grouped_df['count_12M_prior_last_invoice'],[0,1,2,3,5,10,15,10000000], labels=['1','2','3','3-5', '5-10','10-15', '>15'])
+        L12M_freq_chart_df = L12M_freq_grouped_df.groupby('bin', as_index=False).count()
+        L12M_freq_chart_df['percent']=(L12M_freq_chart_df['customer_ID'] / L12M_freq_chart_df['customer_ID'].sum())
+        fig, ax = plt.subplots(figsize=(6,4))
+        ax = sns.barplot(palette=("Blues_d"),x=L12M_freq_chart_df["bin"], y=L12M_freq_chart_df['percent'], ax=ax)
+        ax.set_xlabel("Number of orders")
+        ax.set_ylabel("Customers")
+        ax.set_title('Frequency of Orders L12M', fontweight="bold", fontsize=16)
+        plt.gca().yaxis.set_major_formatter(PercentFormatter(1))
+        sns.despine(left=True, bottom=True)
+        st.pyplot(fig)
+    with col3:
+        L12M_df['sum_revenue'] = L12M_df.groupby(['customer_ID'])['final_price'].transform('sum')
+        L12M_mon_grouped_df = L12M_df[['customer_ID','sum_revenue','segmentation']].drop_duplicates(subset='customer_ID', keep='first')
+        L12M_mon_grouped_df = L12M_mon_grouped_df.astype({"sum_revenue": int})
+        L12M_mon_grouped_df['bin'] = np.where(L12M_mon_grouped_df.sum_revenue <=5000, '<=5,000',">5,000")
+        L12M_mon_chart_df = L12M_mon_grouped_df.groupby('bin', as_index=False).count()
+        L12M_mon_chart_df['percent']=(L12M_mon_chart_df['customer_ID'] / L12M_mon_chart_df['customer_ID'].sum())
+        fig, ax = plt.subplots(figsize=(6,3.9))
+        ax = sns.barplot(palette=("Blues_d"),x=L12M_mon_chart_df["bin"], y=L12M_mon_chart_df["percent"], ax=ax)
+        ax.set_xlabel("Revenue in HKD")
+        ax.set_ylabel("Customers")
+        ax.set_title('Monetary Value L12M of Orders', fontweight="bold", fontsize=16)
+        plt.gca().yaxis.set_major_formatter(PercentFormatter(1))
+        sns.despine(left=True, bottom=True)
+        st.pyplot(fig)
