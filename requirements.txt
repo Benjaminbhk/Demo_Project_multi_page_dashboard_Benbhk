@@ -7,6 +7,9 @@ wheel>=0.29
 # data science
 numpy
 pandas
+matplotlib
+seaborn
+squarify
 
 # tests/linter
 black
@@ -22,6 +25,7 @@ s3fs
 
 # utilities
 six>=1.14
+streamlit
 joblib
 pillow
 memoized-property
